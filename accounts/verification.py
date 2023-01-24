@@ -26,13 +26,13 @@ class SendSMS:
     def __init__(self, phone, message):
         # Your Account Sid and Auth Token from twilio.com/console
         self.account_sid = 'AC49a7a3f6b96a04ed8ce280ca2ce771a6'
-        self.auth_token = 'd257d62ccee8eaec06692a2bea04346a'
+        self.auth_token = 'd8d0fd68b18653c789c285068c5b54f6'
         client = Client(self.account_sid, self.auth_token)
 
         message = client.messages.create(
             body=message,
             from_='+12565679977',
-            to="+91" + phone
+            to=phone
         )
 
         print(message.sid)

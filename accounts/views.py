@@ -65,6 +65,7 @@ class VerifyOtpView(APIView):
         
         if keygen.verify(token, otp):
             user = User.objects.get(auth_token=request.data.get('token'))
+            print(user)
             user.is_active = True
             user.save()
             serializer = UserBaseSerializer(user)
