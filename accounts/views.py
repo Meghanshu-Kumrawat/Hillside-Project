@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from accounts.models import User
 from accounts.serializers import UserBaseSerializer, UserPhoneSerializer, UserEmailSerializer
-from accounts.verification import GenerateOTP, sendSMS
+from accounts.verification import GenerateOTP, SendSMS
 
 
 class HelloView(APIView):
@@ -17,10 +17,6 @@ class HelloView(APIView):
         return Response(content)
 
 
-# This class returns the string needed to generate the key
-
-
-EXPIRY_TIME = 500
 class UserRegisterView(APIView):
     """ 
     Register the user. 
@@ -50,7 +46,7 @@ class UserRegisterView(APIView):
                             recipient_list=[request.data.get('email')])
                     elif request.data.get('phone'):
                         msg = "Your otp is " + OTP.now()
-                        sendSMS(msg, request.data.get('phone'))
+                        SendSMS(request.data.get('phone'), msg)
 
                     return Response({"token":token.key, "auth message": "your otp is send in email or phone, verify to use the app!"}, status=200)
             else:

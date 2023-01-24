@@ -3,6 +3,7 @@ import pyotp
 import base64
 from django.conf import settings
 import requests
+from twilio.rest import Client
 
 class GenerateOTP:
 
@@ -21,26 +22,17 @@ class GenerateOTP:
 
 
 # function for sending SMS
-def sendSMS(message, phone):
-    url = "https://www.fast2sms.com/dev/bulkV2"
+class SendSMS:
+    def __init__(self, phone, message):
+        # Your Account Sid and Auth Token from twilio.com/console
+        self.account_sid = 'AC49a7a3f6b96a04ed8ce280ca2ce771a6'
+        self.auth_token = 'd257d62ccee8eaec06692a2bea04346a'
+        client = Client(self.account_sid, self.auth_token)
 
-    querystring = {
-        "authorization": "9nB0DrAd1mqZI8vcJFLg3ouMbjkGEYpRi7aXwhW2Q6f54CzPeUo7bwdsYp3k6Sx4J8EgPl9KIvNnt2jr",
-        "message": message,
-        "language": "english",
-        "route": "q",
-        "numbers": phone}
+        message = client.messages.create(
+            body=message,
+            from_='+12565679977',
+            to="+91" + phone
+        )
 
-    headers = {
-        'cache-control': "no-cache"
-    }
-    try:
-        response = requests.request("GET", url,
-                                    headers = headers,
-                                    params = querystring)
-        
-        print("SMS Successfully Sent")
-        return True
-    except:
-        print("Oops! Something wrong")
-        return False
+        print(message.sid)
