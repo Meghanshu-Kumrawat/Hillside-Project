@@ -25,3 +25,13 @@ class AuthBackend(ModelBackend):
             return None
 
         return user if user.check_password(password) else None
+
+def authenticate(username, password):
+        try:
+            user = User.objects.get(
+                Q(username=username) | Q(email=username) | Q(phone=username)
+            )
+        except User.DoesNotExist:
+            return None
+
+        return user if user.check_password(password) else None

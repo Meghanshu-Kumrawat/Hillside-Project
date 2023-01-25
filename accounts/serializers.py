@@ -39,4 +39,4 @@ class UserEmailSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'phone', 'password')
     
-        
+    

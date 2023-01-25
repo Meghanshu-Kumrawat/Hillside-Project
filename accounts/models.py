@@ -10,7 +10,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=13, unique=True, null=True, blank=True)
     date_of_birth = models.DateField(blank=True, null=True)
 
-    USERNAME_FIELD = 'username'
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = UserManager()
