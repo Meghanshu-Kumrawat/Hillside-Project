@@ -4,22 +4,44 @@ from products.models import Product, ProductImage, ProductSize, ProductColor
 class ProductImageSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ['product', 'image', 'caption']
+        fields = ['id', 'image', 'caption']
+
+
+class ProductImageWriteSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'caption']
+        
+    def create(self, validated_data):
+        product = Product.objects.get(id=self.context['pk'])
+        productimage = ProductImage.objects.create(product=product, **validated_data)
+        return productimage
 
 class ProductSizeSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductSize
-        fields = ['name', 'quantity']
+        fields = ['id', 'name', 'quantity']
+
+class ProductSizeWriteSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductSize
+        fields = ['id', 'product', 'name', 'quantity']
 
 class ProductColorSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductColor
-        fields = ['name']
+        fields = ['id', 'name']
+
+class ProductColorWriteSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductColor
+        fields = ['id', 'product', 'name']
+
 
 class ProductSerializers(serializers.ModelSerializer):
     productimage_set = ProductImageSerializers(many=True, read_only=True)
-    productsize_set = ProductSizeSerializers(many=True)
-    productcolor_set = ProductColorSerializers(many=True)
+    productsize_set = ProductSizeSerializers(many=True, read_only=True)
+    productcolor_set = ProductColorSerializers(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -38,3 +60,12 @@ class ProductSerializers(serializers.ModelSerializer):
             ProductColor.objects.create(product=product, **productcolor)
 
         return product
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.material = validated_data.get('material', instance.material)
+        instance.origin = validated_data.get('origin', instance.origin)
+        instance.price = validated_data.get('price', instance.price)
+
+        return instance
