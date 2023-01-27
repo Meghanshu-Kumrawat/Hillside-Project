@@ -1,4 +1,6 @@
 from django.db import models
+from accounts.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -6,6 +8,7 @@ class Product(models.Model):
     material = models.CharField(max_length=255)
     origin = models.CharField(max_length=255)
     price = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -29,4 +32,12 @@ class ProductColor(models.Model):
 
     def __str__(self):
         return self.name
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    created_at = models.DateTimeField(auto_now_add=True)
 

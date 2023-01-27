@@ -97,7 +97,7 @@ class UserLoginView(APIView):
         if user:
             if user.is_active:
                 token = Token.objects.get(user=user).key
-                return Response({"user":user.username, "token": token}, status=status.HTTP_406_NOT_ACCEPTABLE)
+                return Response({"user":user.username, "token": token}, status=status.HTTP_202_ACCEPTED)
             else:
                 return Response({"message": "Account not active!"}, status=status.HTTP_406_NOT_ACCEPTABLE)
         else:

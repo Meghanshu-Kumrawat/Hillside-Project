@@ -5,7 +5,7 @@ from accounts.models import User
 class UserBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'   
+        fields = ['id', 'username', 'first_name', 'last_name', 'phone', 'email', 'date_of_birth', 'is_active']  
 
 class UserPhoneSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(

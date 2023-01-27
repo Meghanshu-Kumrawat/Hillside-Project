@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from products.models import Product, ProductImage, ProductSize, ProductColor
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review
+from accounts.serializers import UserBaseSerializer
 
 class ProductImageSerializers(serializers.ModelSerializer):
     class Meta:
@@ -37,35 +38,25 @@ class ProductColorWriteSerializers(serializers.ModelSerializer):
         model = ProductColor
         fields = ['id', 'product', 'name']
 
+class ReviewSerializers(serializers.ModelSerializer):
+    user = UserBaseSerializer(read_only=True)
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'title', 'text', 'rating', 'created_at']
+
+class ReviewWriteSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'product', 'title', 'text', 'rating', 'created_at']
+
 
 class ProductSerializers(serializers.ModelSerializer):
     productimage_set = ProductImageSerializers(many=True, read_only=True)
     productsize_set = ProductSizeSerializers(many=True, read_only=True)
     productcolor_set = ProductColorSerializers(many=True, read_only=True)
+    review_set = ReviewSerializers(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['url', 'id', 'name', 'description', 'material', 'origin', 'price', 'productimage_set', 'productsize_set', 'productcolor_set']
+        fields = ['url', 'id', 'name', 'description', 'material', 'origin', 'price', 'created_at', 'productimage_set', 'productsize_set', 'productcolor_set', 'review_set']
 
-    def create(self, validated_data):
-        productsize_set = validated_data.pop('productsize_set')
-        productcolor_set = validated_data.pop('productcolor_set')
-
-        product = Product.objects.create(**validated_data)
-
-        for productsize in productsize_set:
-            ProductSize.objects.create(product=product, **productsize)
-
-        for productcolor in productcolor_set:
-            ProductColor.objects.create(product=product, **productcolor)
-
-        return product
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.description = validated_data.get('description', instance.description)
-        instance.material = validated_data.get('material', instance.material)
-        instance.origin = validated_data.get('origin', instance.origin)
-        instance.price = validated_data.get('price', instance.price)
-
-        return instance
