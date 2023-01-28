@@ -3,10 +3,10 @@
 
 from django.urls import path, include
 from rest_framework import routers
-from products.views import ProductViewSet
+from orders.views import CartViewSet
 
 
 router = routers.DefaultRouter(trailing_slash=False)
-router.register('products', ProductViewSet)
+router.register('carts', CartViewSet)
 
 urlpatterns = router.urls

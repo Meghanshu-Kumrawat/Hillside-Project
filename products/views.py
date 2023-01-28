@@ -3,14 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from products.models import Product, ProductImage, ProductSize, ProductColor, Review
-from products.serializers import (ProductSerializers, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
+from products.serializers import (ProductSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
         ProductImageWriteSerializers, ProductColorWriteSerializers, ProductSizeWriteSerializers, ReviewWriteSerializers)
 
 
 
 class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     queryset = Product.objects.prefetch_related('productimage_set','productsize_set','productcolor_set', 'review_set').all()
-    serializer_class = ProductSerializers
+    serializer_class = ProductSerializer
     authentication_classes = [TokenAuthentication]
 
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'images/?$', serializer_class=ProductImageSerializers)
@@ -134,8 +134,8 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
         return Response(serializer.data)
  
-    @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'reviews/?$', serializer_class=ReviewSerializers)
-    def reviews(self, request, pk, *args):
+    @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], serializer_class=ReviewSerializers)
+    def reviews(self, request, pk=None, id=None):
         """ to modify sizes of the specific product"""
         self._object = self.get_object() # force to call check_object_permissions
         if request.method == 'GET':

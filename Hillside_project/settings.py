@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'accounts',
-    'products'
+    'products',
+    'orders'
 ]
 SITE_ID = 1
 SOCIALACCOUNT_PROVIDERS = {

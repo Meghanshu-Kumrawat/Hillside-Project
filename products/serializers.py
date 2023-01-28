@@ -49,8 +49,12 @@ class ReviewWriteSerializers(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'user', 'product', 'title', 'text', 'rating', 'created_at']
 
-
-class ProductSerializers(serializers.ModelSerializer):
+class ProductBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['url', 'id', 'name', 'description', 'material', 'origin', 'price']
+        
+class ProductSerializer(serializers.ModelSerializer):
     productimage_set = ProductImageSerializers(many=True, read_only=True)
     productsize_set = ProductSizeSerializers(many=True, read_only=True)
     productcolor_set = ProductColorSerializers(many=True, read_only=True)
