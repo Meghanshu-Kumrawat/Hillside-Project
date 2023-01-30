@@ -1,12 +1,11 @@
 from rest_framework import serializers
-from products.models import Product, ProductImage, ProductSize, ProductColor, Review
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand
 from accounts.serializers import UserBaseSerializer
 
 class ProductImageSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ['id', 'image', 'caption']
-
 
 class ProductImageWriteSerializers(serializers.ModelSerializer):
     class Meta:
@@ -49,12 +48,18 @@ class ReviewWriteSerializers(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'user', 'product', 'title', 'text', 'rating', 'created_at']
 
+class BrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ['id', 'name', 'description']
+
 class ProductBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['url', 'id', 'name', 'description', 'material', 'origin', 'price']
-        
+        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'origin', 'brand', 'price']
+
 class ProductSerializer(serializers.ModelSerializer):
+    brand = BrandSerializer(read_only=True)
     productimage_set = ProductImageSerializers(many=True, read_only=True)
     productsize_set = ProductSizeSerializers(many=True, read_only=True)
     productcolor_set = ProductColorSerializers(many=True, read_only=True)
@@ -62,5 +67,9 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['url', 'id', 'name', 'description', 'material', 'origin', 'price', 'created_at', 'productimage_set', 'productsize_set', 'productcolor_set', 'review_set']
+        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'origin', 'price', 'created_at', 'brand', 'productimage_set', 'productsize_set', 'productcolor_set', 'review_set']
 
+class ProductBannerImageSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['image', 'caption', 'product']

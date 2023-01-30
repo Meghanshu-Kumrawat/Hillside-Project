@@ -2,16 +2,44 @@ from rest_framework import views, mixins, viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
-from products.models import Product, ProductImage, ProductSize, ProductColor, Review
-from products.serializers import (ProductSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
-        ProductImageWriteSerializers, ProductColorWriteSerializers, ProductSizeWriteSerializers, ReviewWriteSerializers)
+from django.db.models import Q
+from functools import reduce
+
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand
+from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
+        ProductImageWriteSerializers, ProductColorWriteSerializers, ProductSizeWriteSerializers, ReviewWriteSerializers, 
+        ProductBannerImageSerializers, BrandSerializer)
 
 
+class BrandViewSet(viewsets.ModelViewSet):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
+class ProductBannerViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+    queryset = ProductImage.objects.select_related('product').all()
+    serializer_class = ProductBannerImageSerializers
 
 class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     queryset = Product.objects.prefetch_related('productimage_set','productsize_set','productcolor_set', 'review_set').all()
     serializer_class = ProductSerializer
     authentication_classes = [TokenAuthentication]
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        category = self.request.query_params.get('category')
+        brand = self.request.query_params.get('brand')
+        filters = [Q(category=category) if category else Q(), Q(brand=brand) if brand else Q()]
+        queryset = queryset.filter(reduce(lambda x, y: x & y, filters))
+        return queryset
+        # if category or brand:
+        #     queryset = queryset.filter(Q(category=category) and Q(brand=brand))
+        # return queryset
+
+    def get_serializer_class(self):
+        print(self.action)
+        if self.action == 'list' or self.action == 'retrieve':
+            return ProductSerializer
+        return ProductBaseSerializer
 
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'images/?$', serializer_class=ProductImageSerializers)
     def images(self, request, pk, *args):
