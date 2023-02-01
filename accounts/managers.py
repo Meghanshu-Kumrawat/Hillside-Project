@@ -15,9 +15,7 @@ class UserManager(BaseUserManager):
             raise ValueError(_('The Username must be set'))
         # email = self.normalize_email(email)
         user = self.model(username=username, **extra_fields)
-        if user.is_superuser:
-            user.is_active = True
-        user.is_active = False
+        user.is_active = extra_fields.get('is_superuser')
         user.set_password(password)
         user.save()
         return user
