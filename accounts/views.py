@@ -1,19 +1,22 @@
 from rest_framework.views import APIView
+from rest_framework import viewsets, mixins
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
 from rest_framework import status
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
-from accounts.models import User
-from accounts.serializers import UserBaseSerializer, UserPhoneSerializer, UserEmailSerializer
-from accounts.verification import GenerateOTP, SendSMS
+from accounts.models import User, Address
+from accounts.serializers import UserBaseSerializer, UserPhoneSerializer, UserEmailSerializer, AddressSerializer, AddressWriteSerializer
+from accounts.verification import GenerateOTP, send_sms
 from accounts.backends import authenticate
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.forms import SetPasswordForm
+from django.db.models import Q
 
 
 
@@ -41,25 +44,43 @@ class UserRegisterView(APIView):
                 user = serializer.save()
 
                 if user:
-                    token = Token.objects.create(user=user)
-            
-                    keygen = GenerateOTP()
-                    OTP = keygen.gererate(token.key)
-                    if request.data.get('email'):
-                        send_mail(
-                            subject='Hillside',
-                            message='Your OTP is ' + OTP.now(),
-                            from_email=settings.EMAIL_HOST_USER,
-                            recipient_list=[request.data.get('email')])
-                    elif request.data.get('phone'):
-                        msg = "Your otp is " + OTP.now()
-                        SendSMS(request.data.get('phone'), msg)
+                    try:
+                        token = Token.objects.create(user=user)
+                
+                        keygen = GenerateOTP()
+                        OTP = keygen.gererate(token.key)
+                        if request.data.get('email'):
+                            send_mail(
+                                subject='Hillside',
+                                message='Your OTP is ' + OTP.now(),
+                                from_email=settings.EMAIL_HOST_USER,
+                                recipient_list=[request.data.get('email')])
+                        elif request.data.get('phone'):
+                            msg = "Your otp is " + OTP.now()
+                            smsstatus = send_sms(request.data.get('phone'), msg)
 
-                    return Response({"token":token.key, "message": "your otp is send in email or phone, verify to use the app!"}, status=200)
+                        return Response({"token":token.key, "message": "your otp is send in email or phone, verify to use the app!"}, status=200)
+                    except Exception as e:
+                        user.delete()
+                        token.delete()
+                        return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             else:
                 return Response({"error":"both password needs to be same!"}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        serializer = UserBaseSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"data":serializer.data}, status=status.HTTP_200_OK)
+
+
+    def delete(self, request):
+        user = User.objects.get(id=request.user.id)
+        user.delete()
+        return Response({"message":"user account deleted successfully!"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class VerifyOtpView(APIView):
@@ -151,3 +172,22 @@ class PasswordResetConfirmView(APIView):
                 return Response({"error": form.errors}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'message': 'Invalid reset link!'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AddressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+    queryset = Address.objects.all()
+    serializer_class = AddressSerializer
+    authentication_classes = [TokenAuthentication]
+
+    def get_queryset(self):
+        queryset = self.queryset.filter(user=self.request.user)
+        return queryset
+    
+    def get_serializer_class(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            return AddressSerializer
+        return AddressWriteSerializer
+    
+    def create(self, request, *args, **kwargs):
+        request.data['user'] = request.user.pk
+        return super().create(request, *args, **kwargs)

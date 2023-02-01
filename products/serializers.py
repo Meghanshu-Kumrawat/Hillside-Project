@@ -5,12 +5,12 @@ from accounts.serializers import UserBaseSerializer
 class ProductImageSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ['id', 'image', 'caption']
+        fields = ['id', 'image', 'caption', 'position']
 
 class ProductImageWriteSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ['id', 'image', 'caption']
+        fields = ['id', 'image', 'caption', 'position']
         
     def create(self, validated_data):
         product = Product.objects.get(id=self.context['pk'])

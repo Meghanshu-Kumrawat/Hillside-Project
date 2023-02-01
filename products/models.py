@@ -18,6 +18,18 @@ class CategoryChoice(str, Enum):
     def __str__(self):
         return self.value
 
+class PositionChoice(str, Enum):
+    LEFT = 'Left'
+    RIGHT = 'Right'
+    CENTER = 'Center'
+
+    @classmethod
+    def choices(cls):
+        return tuple((x.value, x.name) for x in cls)
+
+    def __str__(self):
+        return self.value
+
 class Brand(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
@@ -43,6 +55,7 @@ class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='products/')
     caption = models.CharField(max_length=255, blank=True)
+    position = models.CharField(max_length=255, choices=PositionChoice.choices(), default=PositionChoice.CENTER)
 
 class ProductSize(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

@@ -10,12 +10,17 @@ class User(AbstractUser):
     phone = models.CharField(max_length=13, unique=True, null=True, blank=True)
     date_of_birth = models.DateField(blank=True, null=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = []
 
     objects = UserManager()
 
-    
-
     def __str__(self):
         return self.username
+
+class Address(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    zip_code = models.CharField(max_length=10)
+    full_address = models.TextField()
+
+    

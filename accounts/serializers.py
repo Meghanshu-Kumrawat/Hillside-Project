@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from accounts.models import User
+from accounts.models import User, Address
 
 class UserBaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -39,4 +39,12 @@ class UserEmailSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'phone', 'password')
     
-    
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'zip_code', 'full_address']
+
+class AddressWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['user', 'zip_code', 'full_address']

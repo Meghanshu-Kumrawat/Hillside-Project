@@ -51,7 +51,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = self.get_serializer(page, many=True,
+                serializer = ProductImageSerializers(page, many=True,
                     context={"request": request})
                 return self.get_paginated_response(serializer.data)
 
@@ -90,7 +90,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = self.get_serializer(page, many=True,
+                serializer = ProductColorSerializers(page, many=True,
                     context={"request": request})
                 return self.get_paginated_response(serializer.data)
 
@@ -131,7 +131,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = self.get_serializer(page, many=True,
+                serializer = ProductSizeSerializers(page, many=True,
                     context={"request": request})
                 return self.get_paginated_response(serializer.data)
 
