@@ -24,14 +24,15 @@ class CartSerializer(serializers.ModelSerializer):
 class CartWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
-        fields = ['user', 'product', 'color', 'size', 'quantity']
+        fields = ['product', 'color', 'size']
 
     def to_representation(self, instance):
         serializer = CartSerializer(instance, context=self.context)
         return serializer.data
 
     def create(self, validated_data):
-        cart, created = Cart.objects.get_or_create(user=self.context['request'].user, product=validated_data.product, color=validated_data.color, size=validated_data.size, **validated_data)
+        user = self.context['request'].user
+        cart, created = Cart.objects.get_or_create(user=user, **validated_data)
         if not created:
             cart.quantity += 1
             cart.save()

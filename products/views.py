@@ -7,18 +7,96 @@ from functools import reduce
 
 from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand
 from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
-        ProductImageWriteSerializers, ProductColorWriteSerializers, ProductSizeWriteSerializers, ReviewWriteSerializers, 
+        ReviewWriteSerializers, 
         ProductBannerImageSerializers, BrandSerializer)
 
+from drf_spectacular.utils import (
+    OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
+    extend_schema_view, extend_schema, inline_serializer, extend_schema_serializer, OpenApiExample
+)
 
+@extend_schema(tags=['brand'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of brands according to query parameters (10 projects per page)',
+        responses={
+            '200': BrandSerializer,
+        }),
+    create=extend_schema(
+        summary='Method creates a new brand',
+        responses={
+            '201': BrandSerializer,
+        }),
+    retrieve=extend_schema(
+        summary='Method returns details of a specific brand',
+        responses={
+            '200': BrandSerializer,
+        }),
+    destroy=extend_schema(
+        summary='Method deletes a specific brand',
+        responses={
+            '204': OpenApiResponse(description='The brand has been deleted'),
+        }),
+    partial_update=extend_schema(
+        summary='Methods does a partial update of chosen fields in a brand',
+        responses={
+            '200': BrandSerializer,
+        }),
+    update=extend_schema(
+        summary='Methods does a update of chosen fields in a brand',
+        responses={
+            '200': BrandSerializer,
+        })
+)
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
 
+@extend_schema(tags=['banner images'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of banner images according to query parameters (10 projects per page)',
+        responses={
+            '200': ProductBannerImageSerializers, 
+        })
+)
 class ProductBannerViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = ProductImage.objects.select_related('product').all()
     serializer_class = ProductBannerImageSerializers
 
+@extend_schema(tags=['products'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of products according to query parameters (10 projects per page)',
+        responses={
+            '200': ProductSerializer,
+        }),
+    create=extend_schema(
+        summary='Method creates a new product',
+        responses={
+            '201': ProductSerializer,
+        }),
+    retrieve=extend_schema(
+        summary='Method returns details of a specific product',
+        responses={
+            '200': ProductSerializer,
+        }),
+    destroy=extend_schema(
+        summary='Method deletes a specific product',
+        responses={
+            '204': OpenApiResponse(description='The product has been deleted'),
+        }),
+    partial_update=extend_schema(
+        summary='Methods does a partial update of chosen fields in a product',
+        responses={
+            '200': ProductSerializer,
+        }),
+    update=extend_schema(
+        summary='Methods does a update of chosen fields in a product',
+        responses={
+            '200': ProductSerializer,
+        })
+)
 class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     queryset = Product.objects.prefetch_related('productimage_set','productsize_set','productcolor_set', 'review_set').all()
     serializer_class = ProductSerializer
@@ -36,11 +114,35 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         # return queryset
 
     def get_serializer_class(self):
-        print(self.action)
         if self.action == 'list' or self.action == 'retrieve':
             return ProductSerializer
         return ProductBaseSerializer
 
+
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product images for the specific product with the selected id',
+        responses={
+            '200': ProductImageSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create/upload the product images for the specific product with the selected id',
+        # parameters=[OpenApiParameter('product')],
+        request = ProductImageSerializers,
+        responses={
+            '200': ProductImageSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product images for the specific product with the selected id',
+        request = ProductImageSerializers,
+        responses={
+            '200': ProductImageSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product images for the specific product with the selected id',
+        request = ProductImageSerializers,
+        responses={
+            '200': OpenApiResponse(description='Image object with id = {id} deleted.'),
+        })
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'images/?$', serializer_class=ProductImageSerializers)
     def images(self, request, pk, *args):
         """ to modify images of the specific product"""
@@ -58,7 +160,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             serializer = self.get_serializer(queryset, many=True,
                 context={"request": request})
         elif request.method == 'POST':
-            serializer = ProductImageWriteSerializers(data=request.data, context={"pk":pk})
+            serializer = ProductImageSerializers(data=request.data, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'PATCH':
@@ -67,7 +169,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except ProductImage.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid image id.'})
             
-            serializer = ProductImageWriteSerializers(image_ins, data=request.data, partial=True)
+            serializer = ProductImageSerializers(image_ins, data=request.data, partial=True, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'DELETE':
@@ -76,10 +178,33 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except ProductImage.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid image id.'})
             image_ins.delete()
-            return Response({"message":f"Image object with id = {request.data.get('id')} deleted."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message":f"Image object with id = {request.data.get('id')} deleted."}, status=status.HTTP_200_OK)
 
         return Response(serializer.data)
 
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product colors for the specific product with the selected id',
+        responses={
+            '200': ProductColorSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create the product color for the specific product with the selected id',
+        request = ProductColorSerializers,
+        responses={
+            '200': ProductColorSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product color for the specific product with the selected id',
+        request = ProductColorSerializers,
+        responses={
+            '200': ProductColorSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product color for the specific product with the selected id',
+        request = ProductColorSerializers,
+        responses={
+            '200': OpenApiResponse(description='Image object with id = {id} deleted.'),
+        })
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'colors/?$', serializer_class=ProductColorSerializers)
     def colors(self, request, pk, *args):
         """ to modify colors of the specific product"""
@@ -98,7 +223,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
                 context={"request": request})
         elif request.method == 'POST':
             request.data['product'] = pk
-            serializer = ProductColorWriteSerializers(data=request.data)
+            serializer = ProductColorSerializers(data=request.data, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'PATCH':
@@ -108,7 +233,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except ProductColor.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid color id.'})
             
-            serializer = ProductColorWriteSerializers(color_ins, data=request.data, partial=True)
+            serializer = ProductColorSerializers(color_ins, data=request.data, partial=True, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'DELETE':
@@ -117,10 +242,33 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except ProductColor.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid color id.'})
             color_ins.delete()
-            return Response({"message":f"Color object with id = {request.data.get('id')} deleted."}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"message":f"Color object with id = {request.data.get('id')} deleted."}, status=status.HTTP_200_OK)
 
         return Response(serializer.data)
 
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product sizes for the specific product with the selected id',
+        responses={
+            '200': ProductSizeSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create the product size for the specific product with the selected id',
+        request = ProductSizeSerializers,
+        responses={
+            '200': ProductSizeSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product size for the specific product with the selected id',
+        request = ProductSizeSerializers,
+        responses={
+            '200': ProductSizeSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product size for the specific product with the selected id',
+        request = ProductSizeSerializers,
+        responses={
+            '200': OpenApiResponse(description='Image object with id = {id} deleted.'),
+        })
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'sizes/?$', serializer_class=ProductSizeSerializers)
     def sizes(self, request, pk, *args):
         """ to modify sizes of the specific product"""
@@ -139,7 +287,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
                 context={"request": request})
         elif request.method == 'POST':
             request.data['product'] = pk
-            serializer = ProductSizeWriteSerializers(data=request.data)
+            serializer = ProductSizeSerializers(data=request.data, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'PATCH':
@@ -149,7 +297,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except ProductSize.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid size id.'})
             
-            serializer = ProductSizeWriteSerializers(size_ins, data=request.data, partial=True)
+            serializer = ProductSizeSerializers(size_ins, data=request.data, partial=True, context={"pk":pk})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'DELETE':
@@ -162,6 +310,29 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
         return Response(serializer.data)
  
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product reviews for the specific product with the selected id',
+        responses={
+            '200': ReviewSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create the product review for the specific product with the selected id',
+        request = ReviewWriteSerializers,
+        responses={
+            '200': ReviewSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product review for the specific product with the selected id',
+        request = ReviewWriteSerializers,
+        responses={
+            '200': ReviewSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product review for the specific product with the selected id',
+        request = ReviewSerializers,
+        responses={
+            '200': OpenApiResponse(description='Image object with id = {id} deleted.'),
+        })
     @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], serializer_class=ReviewSerializers)
     def reviews(self, request, pk=None, id=None):
         """ to modify sizes of the specific product"""
@@ -171,7 +342,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = self.get_serializer(page, many=True,
+                serializer = ReviewSerializers(page, many=True,
                     context={"request": request})
                 return self.get_paginated_response(serializer.data)
 
@@ -180,7 +351,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         elif request.method == 'POST':
             request.data['product'] = pk
             request.data['user'] = self.request.user.pk
-            serializer = ReviewWriteSerializers(data=request.data)
+            serializer = ReviewWriteSerializers(data=request.data, context={"pk":pk, "user":self.request.user})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'PATCH':
@@ -191,7 +362,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             except Review.DoesNotExist:
                 return Response({'id': 'Not found, Provide valid review id.'})
             
-            serializer = ReviewWriteSerializers(review_ins, data=request.data, partial=True)
+            serializer = ReviewWriteSerializers(review_ins, data=request.data, partial=True, context={"pk":pk, "user":self.request.user})
             serializer.is_valid(raise_exception=True)
             serializer.save()
         elif request.method == 'DELETE':

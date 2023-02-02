@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
+from rest_framework import serializers
 from rest_framework import status
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
@@ -18,6 +19,11 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.forms import SetPasswordForm
 from django.db.models import Q
 
+from drf_spectacular.utils import (
+    OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
+    extend_schema_view, extend_schema, inline_serializer, extend_schema_serializer, OpenApiExample
+)
+
 
 
 class HelloView(APIView):
@@ -26,11 +32,19 @@ class HelloView(APIView):
         content = {'message': 'Hello, ' + request.user.username}
         return Response(content)
 
-
 class UserRegisterView(APIView):
     """ 
     Register the user. 
     """
+    @extend_schema(
+            summary="Method to register the user",
+            request=UserEmailSerializer,
+            responses={
+                '200':inline_serializer(name="",
+                    fields={"token": serializers.CharField(), 
+                            "message": serializers.CharField()})}
+            # more customizations
+        )
     def post(self, request, format='json'):
         if request.data.get('email'):
             serializer = UserEmailSerializer(data=request.data)
@@ -70,17 +84,25 @@ class UserRegisterView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+            summary="Method to modify the user",
+            request=UserBaseSerializer,
+            responses=UserBaseSerializer
+    )
     def patch(self, request):
         serializer = UserBaseSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"data":serializer.data}, status=status.HTTP_200_OK)
 
-
+    @extend_schema(
+            summary="Method to delete the user",
+            responses={}
+    )
     def delete(self, request):
         user = User.objects.get(id=request.user.id)
         user.delete()
-        return Response({"message":"user account deleted successfully!"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"user account deleted successfully!"}, status=status.HTTP_200_OK)
 
 
 class VerifyOtpView(APIView):
@@ -173,7 +195,43 @@ class PasswordResetConfirmView(APIView):
         else:
             return Response({'message': 'Invalid reset link!'}, status=status.HTTP_400_BAD_REQUEST)
 
-
+@extend_schema(tags=['address'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of address according to query parameters (10 projects per page)',
+        responses={
+            '200': PolymorphicProxySerializer(component_name='PolymorphicProject',
+                serializers=[
+                    AddressSerializer, 
+                ], resource_type_field_name=None, many=True),
+        }),
+    create=extend_schema(
+        summary='Method creates a new address',
+        request=AddressWriteSerializer,
+        responses={
+            '201': AddressSerializer,
+        }),
+    retrieve=extend_schema(
+        summary='Method returns details of a specific address',
+        responses={
+            '200': AddressSerializer,
+        }),
+    destroy=extend_schema(
+        summary='Method deletes a specific address',
+        responses={
+            '204': OpenApiResponse(description='The address has been deleted'),
+        }),
+    partial_update=extend_schema(
+        summary='Methods does a partial update of chosen fields in a address',
+        responses={
+            '200': AddressSerializer,
+        }),
+    update=extend_schema(
+        summary='Methods does a update of chosen fields in a address',
+        responses={
+            '200': AddressSerializer,
+        })
+)
 class AddressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer

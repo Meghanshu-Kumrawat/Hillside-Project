@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 
 urlpatterns = [
@@ -25,6 +25,19 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('api/', include('products.urls')),
     path('api/', include('orders.urls')),
+
+    # documentation for API
+    path('api/schema/', SpectacularAPIView.as_view(
+        permission_classes=[] # This endpoint is available for everyone
+    ), name='schema'),
+    path('api/swagger/', SpectacularSwaggerView.as_view(
+        url_name='schema',
+        permission_classes=[] # This endpoint is available for everyone
+    ), name='swagger'),
+    path('api/docs/', SpectacularRedocView.as_view(
+        url_name='schema',
+        permission_classes=[] # This endpoint is available for everyone
+    ), name='redoc'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 

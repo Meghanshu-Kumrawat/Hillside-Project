@@ -7,11 +7,6 @@ class ProductImageSerializers(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id', 'image', 'caption', 'position']
 
-class ProductImageWriteSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['id', 'image', 'caption', 'position']
-        
     def create(self, validated_data):
         product = Product.objects.get(id=self.context['pk'])
         productimage = ProductImage.objects.create(product=product, **validated_data)
@@ -22,20 +17,20 @@ class ProductSizeSerializers(serializers.ModelSerializer):
         model = ProductSize
         fields = ['id', 'name', 'quantity']
 
-class ProductSizeWriteSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = ProductSize
-        fields = ['id', 'product', 'name', 'quantity']
+    def create(self, validated_data):
+        product = Product.objects.get(id=self.context['pk'])
+        productsize = ProductSize.objects.create(product=product, **validated_data)
+        return productsize
 
 class ProductColorSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductColor
         fields = ['id', 'name']
 
-class ProductColorWriteSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = ProductColor
-        fields = ['id', 'product', 'name']
+    def create(self, validated_data):
+        product = Product.objects.get(id=self.context['pk'])
+        productcolor = ProductColor.objects.create(product=product, **validated_data)
+        return productcolor
 
 class ReviewSerializers(serializers.ModelSerializer):
     user = UserBaseSerializer(read_only=True)
@@ -46,7 +41,13 @@ class ReviewSerializers(serializers.ModelSerializer):
 class ReviewWriteSerializers(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ['id', 'user', 'product', 'title', 'text', 'rating', 'created_at']
+        fields = ['title', 'text', 'rating', 'created_at']
+
+    def create(self, validated_data):
+        product = Product.objects.get(id=self.context['pk'])
+        user = self.context['user']
+        review = Review.objects.create(product=product, user=user, **validated_data)
+        return review
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
