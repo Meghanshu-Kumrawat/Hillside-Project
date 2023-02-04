@@ -44,3 +44,8 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['user', 'product', 'delivery_type', 'phone', 'email', 'date', 'from_time', 'to_time', 'created_at', 'ordered_at', 'total', 'payment', 'ordered', 'received']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['stripe_charge_id', 'user', 'amount', 'timestamp']

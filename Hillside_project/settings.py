@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CORS_ORIGIN_ALLOW_ALL=True
 
 # Application definition
 
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_spectacular',
+    'corsheaders',
     'accounts',
     'products',
     'orders'
@@ -77,6 +79,7 @@ SPECTACULAR_SETTINGS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -167,6 +170,10 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+STRIPE_SECRET_KEY = 'sk_test_51MWKGUSHsFjEKawcibl1VFynFgGpXsrkcnVl9WvQykwsJVN2VXCZvCvM1SzgvrXp8pOp6j1n0KZV8bDFsKjZaaL100EIUdF2gs'
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51MWKGUSHsFjEKawcZPYaJHv1NMmf3EqZQyGyKPTo1tcL4CGbDqH7jwHFYZEqx0TZKjTpoGqtFKPichQRY3ic5m9X00R9rmjAWW'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

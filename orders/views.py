@@ -1,8 +1,10 @@
 from rest_framework import views, viewsets, generics, mixins, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
+from django.conf import settings
 from orders.models import Cart, Order, Payment
-from orders.serializers import CartSerializer, CartWriteSerializer, OrderSerializer
+from orders.serializers import CartSerializer, CartWriteSerializer, OrderSerializer, PaymentSerializer
+import stripe
 
 from drf_spectacular.utils import (
     OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
@@ -102,11 +104,61 @@ class OrderConfirmationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
         })
 )
 class OrderCheckoutViewSet(views.APIView):
-    def get(self, request):
-        order = Order.objects.get(user=request.user, ordered=False)
-        serializer = OrderSerializer(order, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    authentication_classes = [TokenAuthentication]
 
+    def post(self, request):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        test_payment_intent = stripe.PaymentIntent.create(
+        amount=1000, currency='pln', 
+        payment_method_types=['card'],
+        receipt_email='test@example.com')
+        return Response(status=status.HTTP_200_OK, data=test_payment_intent)
+        # if 'stripeToken' not in request.data:
+        #     return Response({"error": "Stripe token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        # order = Order.objects.get(user=request.user, ordered=False)
+        # # try:
+        # stripe.api_key = settings.STRIPE_SECRET_KEY
+        # charge = stripe.Charge.create(
+        #     amount=order.total,
+        #     currency="inr",
+        #     source=request.data['stripeToken'],
+        # )
+        # print('-------------charge object', charge)
+        # if charge:
+        #     Payment.objects.create(
+        #         amount=order.total,
+        #         stripe_charge_id=charge.id,
+        #         user=request.user
+        #     )
+        #     order.ordered = True
+        #     return Response({"message": "Payment successful."}, status=status.HTTP_200_OK)
+        # except stripe.error.StripeError as e:
+        #     return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+class SaveViewSet(views.APIView):
+    def post(self, request):
+        data = request.data
+        email = data['email']
+        payment_method_id = data['payment_method_id']
+        extra_msg = '' # add new variable to response message  # checking if customer with provided email already exists
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        customer_data = stripe.Customer.list(email=email).data   
+        
+        # if the array is empty it means the email has not been used yet  
+        if len(customer_data) == 0:
+            # creating customer
+            customer = stripe.Customer.create(
+            email=email)  
+        else:
+            customer = customer_data[0]
+            extra_msg = "Customer already existed."  
+            stripe.Charge.create(
+                customer=customer, 
+                currency='inr', # you can provide any currency you want
+                amount=999,
+                description='Test payment',
+                confirm=True)  
+            return Response(status=status.HTTP_200_OK, data={'message': 'Success', 'data': {'customer_id': customer.id, 'extra_msg': extra_msg}})
 
 @extend_schema(tags=['order history'])
 @extend_schema_view(

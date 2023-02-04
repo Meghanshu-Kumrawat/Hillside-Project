@@ -38,7 +38,7 @@ class Order(models.Model):
     ordered_at = models.DateTimeField(auto_now=True)
     total = models.IntegerField(default=0)
     payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, blank=True, null=True)
-    ordered = models.BooleanField(default=False)
+    ordered = models.BooleanField(default=False)                                                                                                                                                                                                                                                                                                                                                                              
     received = models.BooleanField(default=False)
 
 class Payment(models.Model):

@@ -3,7 +3,7 @@
 
 from django.urls import path, include
 from rest_framework import routers
-from orders.views import CartViewSet, OrderConfirmationViewSet, OrderCheckoutViewSet, OrderHistoryViewSet
+from orders.views import CartViewSet, OrderConfirmationViewSet, OrderCheckoutViewSet, OrderHistoryViewSet, OrderCheckoutViewSet, SaveViewSet
 
 
 router = routers.DefaultRouter(trailing_slash=False)
@@ -12,6 +12,7 @@ router.register('order-confirmation', OrderConfirmationViewSet)
 router.register('order-history', OrderHistoryViewSet)
 
 urlpatterns = [
-    path('order', OrderCheckoutViewSet.as_view()),
+    path('order-checkout', OrderCheckoutViewSet.as_view()),
+    path('save_stripe_info/', SaveViewSet.as_view()),
     path('', include(router.urls))
 ]
