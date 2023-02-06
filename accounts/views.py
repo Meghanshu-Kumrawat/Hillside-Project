@@ -18,6 +18,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.forms import SetPasswordForm
 from django.db.models import Q
+import stripe
 
 from drf_spectacular.utils import (
     OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
@@ -63,6 +64,7 @@ class UserRegisterView(APIView):
                 
                         keygen = GenerateOTP()
                         OTP = keygen.gererate(token.key)
+                        print("token", token.key, "OTP", OTP.now(), "message", "your otp is send in email or phone, verify to use the app!")
                         if request.data.get('email'):
                             send_mail(
                                 subject='Hillside',
@@ -75,8 +77,8 @@ class UserRegisterView(APIView):
 
                         return Response({"token":token.key, "message": "your otp is send in email or phone, verify to use the app!"}, status=200)
                     except Exception as e:
-                        user.delete()
-                        token.delete()
+                        # user.delete()
+                        # token.delete()
                         return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             else:
@@ -112,12 +114,14 @@ class VerifyOtpView(APIView):
         token = request.data.get('token')
         otp = request.data.get('otp')
         keygen = GenerateOTP()
+        stripe.api_key = settings.STRIPE_SECRET_KEY
         
         if keygen.verify(token, otp):
             user = User.objects.get(auth_token=request.data.get('token'))
-            print(user)
             user.is_active = True
             user.save()
+            customer = stripe.Customer.create(email=user.email)
+            user.stripe_customer_id = customer.id
             serializer = UserBaseSerializer(user)
             json = serializer.data
             json['token'] = user.auth_token.key
@@ -246,6 +250,3 @@ class AddressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             return AddressSerializer
         return AddressWriteSerializer
     
-    def create(self, request, *args, **kwargs):
-        request.data['user'] = request.user.pk
-        return super().create(request, *args, **kwargs)

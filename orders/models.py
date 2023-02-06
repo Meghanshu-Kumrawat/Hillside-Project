@@ -1,14 +1,13 @@
 from django.db import models
 from enum import Enum
-from accounts.models import User
-from products.models import Product, ProductColor, ProductSize
+from accounts.models import User, Address
+from products.models import Product
 
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    color = models.ForeignKey(ProductColor, on_delete=models.CASCADE)
-    size = models.ForeignKey(ProductSize, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
+    ordered = models.BooleanField(default=False)                                                                                                                                                                                                                                                                                                                                                                              
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_total(self):
@@ -37,7 +36,8 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     ordered_at = models.DateTimeField(auto_now=True)
     total = models.IntegerField(default=0)
-    payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, blank=True, null=True)
+    payment = models.OneToOneField('Payment', on_delete=models.SET_NULL, blank=True, null=True)
+    address = models.OneToOneField(Address, on_delete=models.SET_NULL, blank=True, null=True)
     ordered = models.BooleanField(default=False)                                                                                                                                                                                                                                                                                                                                                                              
     received = models.BooleanField(default=False)
 

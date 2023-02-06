@@ -47,4 +47,9 @@ class AddressSerializer(serializers.ModelSerializer):
 class AddressWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = ['user', 'zip_code', 'full_address']
+        fields = ['zip_code', 'full_address']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        address = Address.objects.create(user=user, **validated_data)
+        return address

@@ -2,6 +2,7 @@ from rest_framework import views, viewsets, generics, mixins, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from django.conf import settings
+from accounts.models import User, Address
 from orders.models import Cart, Order, Payment
 from orders.serializers import CartSerializer, CartWriteSerializer, OrderSerializer, PaymentSerializer
 import stripe
@@ -53,17 +54,13 @@ class CartViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     authentication_classes = [TokenAuthentication]
 
     def get_queryset(self):
-        queryset  = self.queryset.filter(user=self.request.user)
+        queryset  = self.queryset.filter(user=self.request.user, ordered=False)
         return queryset
 
     def get_serializer_class(self):
         if self.action == 'list' or self.action == 'retrieve':
             return CartSerializer
         return CartWriteSerializer
-
-    def create(self, request, *args, **kwargs):
-        request.data['user'] = request.user.pk
-        return super().create(request, *args, **kwargs)
 
 @extend_schema(tags=['order confirmation'])
 @extend_schema_view(
@@ -79,7 +76,7 @@ class OrderConfirmationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     authentication_classes = [TokenAuthentication]
 
     def get_queryset(self):
-        queryset  = self.queryset.filter(user=self.request.user)
+        queryset  = self.queryset.filter(user=self.request.user, ordered=False)
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -107,58 +104,86 @@ class OrderCheckoutViewSet(views.APIView):
     authentication_classes = [TokenAuthentication]
 
     def post(self, request):
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-        test_payment_intent = stripe.PaymentIntent.create(
-        amount=1000, currency='pln', 
-        payment_method_types=['card'],
-        receipt_email='test@example.com')
-        return Response(status=status.HTTP_200_OK, data=test_payment_intent)
-        # if 'stripeToken' not in request.data:
-        #     return Response({"error": "Stripe token is required."}, status=status.HTTP_400_BAD_REQUEST)
-        # order = Order.objects.get(user=request.user, ordered=False)
-        # # try:
-        # stripe.api_key = settings.STRIPE_SECRET_KEY
-        # charge = stripe.Charge.create(
-        #     amount=order.total,
-        #     currency="inr",
-        #     source=request.data['stripeToken'],
-        # )
-        # print('-------------charge object', charge)
-        # if charge:
-        #     Payment.objects.create(
-        #         amount=order.total,
-        #         stripe_charge_id=charge.id,
-        #         user=request.user
-        #     )
-        #     order.ordered = True
-        #     return Response({"message": "Payment successful."}, status=status.HTTP_200_OK)
-        # except stripe.error.StripeError as e:
-        #     return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+        if 'payment_method_id' not in request.data or 'address_id' not in request.data:
+            return Response({"error": "payment_method_id or address_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            order = Order.objects.get(user=request.user, ordered=False)
+            user = User.objects.get(id=request.user.id)
+            address = Address.objects.get(id=request.data['address_id'])
+            payment_method_id = request.data['payment_method_id']
+            stripe.api_key = settings.STRIPE_SECRET_KEY
 
-class SaveViewSet(views.APIView):
-    def post(self, request):
-        data = request.data
-        email = data['email']
-        payment_method_id = data['payment_method_id']
-        extra_msg = '' # add new variable to response message  # checking if customer with provided email already exists
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-        customer_data = stripe.Customer.list(email=email).data   
-        
-        # if the array is empty it means the email has not been used yet  
-        if len(customer_data) == 0:
-            # creating customer
-            customer = stripe.Customer.create(
-            email=email)  
-        else:
-            customer = customer_data[0]
-            extra_msg = "Customer already existed."  
-            stripe.Charge.create(
-                customer=customer, 
-                currency='inr', # you can provide any currency you want
-                amount=999,
+            customer = stripe.Customer.retrieve(user.stripe_customer_id)
+            pay_intent = stripe.PaymentIntent.create(
+                customer=customer.id, 
+                currency='inr', 
+                amount=int(order.total * 100),
                 description='Test payment',
+                payment_method=payment_method_id,
+                receipt_email=user.email,
+                metadata={'order_id': order.id, 'user_id': user.id, 'email': user.email, 'name': user.username, 'phone': user.phone},
                 confirm=True)  
-            return Response(status=status.HTTP_200_OK, data={'message': 'Success', 'data': {'customer_id': customer.id, 'extra_msg': extra_msg}})
+ 
+            if pay_intent:
+                payment = Payment.objects.create(
+                    amount=order.total,
+                    stripe_charge_id=pay_intent.id,
+                    user=request.user
+                )
+                order.ordered = True
+                order.payment = payment
+                order.address = address
+                order.phone = request.data.get('phone')
+                order.email = request.data.get('email')
+                if request.data.get('delivery_type') == 'Personalised':
+                    order.delivery_type = 'Personalised'
+                    if request.data.get('date') and request.data.get('from_time') and request.data.get('to_time'):
+                        order.date = request.data.get('date')
+                        order.from_time = request.data.get('from_time')
+                        order.to_time = request.data.get('to_time')
+                    else:
+                        return Response({"error": "date, from_time and to_time is required."}, status=status.HTTP_400_BAD_REQUEST)
+                order.save()
+                for cart in order.product.all():
+                    cart.ordered = True
+                    cart.save()
+                    cart.product.quantity -= cart.quantity
+                    cart.product.save()
+                return Response({"message": "Payment successful.", "payment_id":pay_intent.id}, status=status.HTTP_200_OK)
+        except stripe.error.CardError as e:
+            body = e.json_body
+            err = body.get('error', {})
+            return Response({"error": err}, status=status.HTTP_400_BAD_REQUEST)
+
+        except stripe.error.RateLimitError as e:
+            # Too many requests made to the API too quickly
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+        except stripe.error.InvalidRequestError as e:
+            # Invalid parameters were supplied to Stripe's API
+            print(e)
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+        except stripe.error.AuthenticationError as e:
+            # Authentication with Stripe's API failed
+            # (maybe you changed API keys recently)
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+        except stripe.error.APIConnectionError as e:
+            # Network communication with Stripe failed
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+        except stripe.error.StripeError as e:
+            # Display a very generic error to the user, and maybe send
+            # yourself an email
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            # send an email to ourselves
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.StripeError as e:
+            return Response({"error": e}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @extend_schema(tags=['order history'])
 @extend_schema_view(
