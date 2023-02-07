@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Product, ProductImage, Review, Brand
+from products.models import Product, ProductImage, Review, Brand, Collection
 from accounts.serializers import UserBaseSerializer
 
 class ProductImageSerializers(serializers.ModelSerializer):
@@ -34,6 +34,11 @@ class BrandSerializer(serializers.ModelSerializer):
         model = Brand
         fields = ['id', 'name', 'description']
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ['id', 'name', 'description']
+
 class ProductBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
@@ -41,6 +46,7 @@ class ProductBaseSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
     productimage_set = ProductImageSerializers(many=True, read_only=True)
     review_set = ReviewSerializers(many=True, read_only=True)
 
@@ -52,3 +58,9 @@ class ProductBannerImageSerializers(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ['image', 'caption', 'product']
+
+class CollectionSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True, read_only=True)
+    class Meta:
+        model = Collection
+        fields = ['url', 'id', 'name', 'description', 'products', 'active', 'created_at', 'start_date', 'end_date']

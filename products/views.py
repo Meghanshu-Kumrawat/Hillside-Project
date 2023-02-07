@@ -6,10 +6,10 @@ from django.db.models import Q
 from functools import reduce
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from products.models import Product, ProductImage, Review, Brand
+from products.models import Product, ProductImage, Review, Brand, Category, Collection
 from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ReviewSerializers, 
         ReviewWriteSerializers, 
-        ProductBannerImageSerializers, BrandSerializer)
+        ProductBannerImageSerializers, BrandSerializer, CategorySerializer, CollectionSerializer)
 
 from drf_spectacular.utils import (
     OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
@@ -52,6 +52,45 @@ from drf_spectacular.utils import (
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
+    permission_classes = [IsAdminUser, IsAuthenticated]
+
+
+@extend_schema(tags=['category'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of categories according to query parameters (10 projects per page)',
+        responses={
+            '200': CategorySerializer,
+        }),
+    create=extend_schema(
+        summary='Method creates a new category',
+        responses={
+            '201': CategorySerializer,
+        }),
+    retrieve=extend_schema(
+        summary='Method returns details of a specific category',
+        responses={
+            '200': CategorySerializer,
+        }),
+    destroy=extend_schema(
+        summary='Method deletes a specific category',
+        responses={
+            '204': OpenApiResponse(description='The category has been deleted'),
+        }),
+    partial_update=extend_schema(
+        summary='Methods does a partial update of chosen fields in a category',
+        responses={
+            '200': CategorySerializer,
+        }),
+    update=extend_schema(
+        summary='Methods does a update of chosen fields in a category',
+        responses={
+            '200': CategorySerializer,
+        })
+)
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
     permission_classes = [IsAdminUser, IsAuthenticated]
 
 @extend_schema(tags=['banner images'])
@@ -251,3 +290,21 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             return Response({"message":f"Size object with id = {request.data.get('id')} deleted."}, status=status.HTTP_204_NO_CONTENT)
 
         return Response(serializer.data)
+
+
+@extend_schema(tags=['collections'])
+@extend_schema_view(
+    list=extend_schema(
+        summary='Returns a paginated list of collections according to query parameters (10 collections per page)',
+        responses={
+            '200': CollectionSerializer,
+        }),
+    retrieve=extend_schema(
+        summary='Method returns details of a specific collection',
+        responses={
+            '200': CollectionSerializer,
+        }),
+)
+class CollectionViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+    queryset = Collection.objects.all()
+    serializer_class = CollectionSerializer

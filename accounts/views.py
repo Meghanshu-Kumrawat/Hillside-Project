@@ -11,8 +11,8 @@ from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from accounts.models import User, Address
-from accounts.serializers import UserBaseSerializer, UserPhoneSerializer, UserEmailSerializer, AddressSerializer, AddressWriteSerializer
-from accounts.verification import GenerateOTP, send_sms
+from accounts.serializers import UserBaseSerializer, UserEmailSerializer, AddressSerializer, AddressWriteSerializer
+from accounts.verification import GenerateOTP
 from accounts.backends import authenticate
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
@@ -48,42 +48,30 @@ class UserRegisterView(APIView):
             # more customizations
         )
     def post(self, request, format='json'):
-        if request.data.get('email'):
-            serializer = UserEmailSerializer(data=request.data)
-        elif request.data.get('phone'):
-            serializer = UserPhoneSerializer(data=request.data)
-        else:
-            return Response({"error":"Please enter the correct email address or phone number and password for a your account. Note that both fields may be case-sensitive.!"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = UserEmailSerializer(data=request.data)
 
         if serializer.is_valid(raise_exception=True):
-            if request.data.get('password') == request.data.get('password1'):
-                user = serializer.save()
+            user = serializer.save()
 
-                if user:
-                    try:
-                        token = Token.objects.create(user=user)
-                
-                        keygen = GenerateOTP()
-                        OTP = keygen.gererate(token.key)
-                        print("token", token.key, "OTP", OTP.now(), "message", "your otp is send in email or phone, verify to use the app!")
-                        if request.data.get('email'):
-                            send_mail(
-                                subject='Hillside',
-                                message='Your OTP is ' + OTP.now(),
-                                from_email=settings.EMAIL_HOST_USER,
-                                recipient_list=[request.data.get('email')])
-                        elif request.data.get('phone'):
-                            msg = "Your otp is " + OTP.now()
-                            smsstatus = send_sms(request.data.get('phone'), msg)
+            if user:
+                try:
+                    token = Token.objects.create(user=user)
+            
+                    keygen = GenerateOTP()
+                    OTP = keygen.gererate(token.key)
+                    print("token", token.key, "OTP", OTP.now())
+                    
+                    send_mail(
+                        subject='Hillside',
+                        message='Your OTP is ' + OTP.now(),
+                        from_email=settings.EMAIL_HOST_USER,
+                        recipient_list=[request.data.get('email')])
 
-                        return Response({"token":token.key, "message": "your otp is send in email or phone, verify to use the app!"}, status=200)
-                    except Exception as e:
-                        # user.delete()
-                        # token.delete()
-                        return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            else:
-                return Response({"error":"both password needs to be same!"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"token":token.key, "message": "your otp is send in email, verify to use the app!"}, status=200)
+                except Exception as e:
+                    user.delete()
+                    token.delete()
+                    return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -140,18 +128,13 @@ class UserLoginView(APIView):
     Login the user. 
     """
     def post(self, request, format='json'):
-        if request.data.get('email'):
-            username = request.data.get('email')
-        elif request.data.get('phone'):
-            username = request.data.get('phone')
-        else:
-            return Response({"error":"Please enter the correct email address or phone number and password of your account. Note that both fields may be case-sensitive.!"}, status=status.HTTP_400_BAD_REQUEST)
+        email = request.data.get('email')
 
-        user = authenticate(username=username, password=request.data.get('password'))
+        user = authenticate(email=email, password=request.data.get('password'))
         if user:
             if user.is_active:
                 token = Token.objects.get(user=user).key
-                return Response({"user":user.username, "token": token}, status=status.HTTP_202_ACCEPTED)
+                return Response({"user":user.email, "token": token}, status=status.HTTP_202_ACCEPTED)
             else:
                 return Response({"message": "Account not active!"}, status=status.HTTP_406_NOT_ACCEPTABLE)
         else:
@@ -159,15 +142,9 @@ class UserLoginView(APIView):
 
 class PasswordResetView(APIView):
     def post(self, request, format='json'):
-        if request.data.get('email'):
-            email = request.data.get('email')
-            user = User.objects.get(email=email)
-        elif request.data.get('phone'):
-            phone = request.data.get('phone')
-            user = User.objects.get(phone=phone)
-        else:
-            return Response({"error":"Please enter the correct email address or phone number and password of your account. Note that both fields may be case-sensitive.!"}, status=status.HTTP_400_BAD_REQUEST)
-
+        email = request.data.get('email')
+        user = User.objects.get(email=email)
+        
         if user:
             token = default_token_generator.make_token(user)
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
@@ -180,11 +157,9 @@ class PasswordResetView(APIView):
                     recipient_list = [request.data.get('email')],
                     fail_silently=False,
                 )
-            elif request.data.get('phone'):
-                msg = f"Password reset\n Use this link to reset your password: {reset_link}"
-                SendSMS(request.data.get('phone'), msg)
 
-            return Response({'message': 'Password reset email or sms sent to your registered email or phone!'},)
+            return Response({'message': 'Password reset email sent to your registered email!'}, status=status.HTTP_200_OK)
+        return Response({'error': 'Email is not registered. please create new account!'},)
 
 class PasswordResetConfirmView(APIView):
     def post(self, request, uidb64, token, format='json'):
