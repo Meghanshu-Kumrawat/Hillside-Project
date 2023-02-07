@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from django.db.models import Q
 from functools import reduce
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from products.models import Product, ProductImage, Review, Brand
 from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ReviewSerializers, 
@@ -51,6 +52,7 @@ from drf_spectacular.utils import (
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
+    permission_classes = [IsAdminUser, IsAuthenticated]
 
 @extend_schema(tags=['banner images'])
 @extend_schema_view(
@@ -63,6 +65,8 @@ class BrandViewSet(viewsets.ModelViewSet):
 class ProductBannerViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = ProductImage.objects.select_related('product').all()
     serializer_class = ProductBannerImageSerializers
+    permission_classes = [IsAdminUser, IsAuthenticated]
+
 
 @extend_schema(tags=['products'])
 @extend_schema_view(

@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import serializers
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
@@ -41,7 +42,7 @@ class UserRegisterView(APIView):
             summary="Method to register the user",
             request=UserEmailSerializer,
             responses={
-                '200':inline_serializer(name="",
+                '200':inline_serializer(name="register",
                     fields={"token": serializers.CharField(), 
                             "message": serializers.CharField()})}
             # more customizations
@@ -106,7 +107,13 @@ class UserRegisterView(APIView):
         user.delete()
         return Response({"message":"user account deleted successfully!"}, status=status.HTTP_200_OK)
 
-
+@extend_schema(
+    summary="Method to verify the OTP",
+    request=inline_serializer(name="verify", fields={"token": serializers.CharField(), "otp": serializers.CharField()}),
+    responses={
+            '200': UserBaseSerializer,
+        }
+)
 class VerifyOtpView(APIView):
     # This Method verifies the OTP
     @staticmethod
@@ -240,6 +247,7 @@ class AddressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = self.queryset.filter(user=self.request.user)

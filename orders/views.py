@@ -1,5 +1,6 @@
 from rest_framework import views, viewsets, generics, mixins, status
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.conf import settings
 from accounts.models import User, Address
@@ -52,6 +53,7 @@ class CartViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset  = self.queryset.filter(user=self.request.user, ordered=False)
@@ -74,6 +76,7 @@ class OrderConfirmationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset  = self.queryset.filter(user=self.request.user, ordered=False)
@@ -102,6 +105,7 @@ class OrderConfirmationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
 )
 class OrderCheckoutViewSet(views.APIView):
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         if 'payment_method_id' not in request.data or 'address_id' not in request.data:
@@ -197,6 +201,7 @@ class OrderHistoryViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = self.queryset.filter(user=self.request.user, ordered=True)
