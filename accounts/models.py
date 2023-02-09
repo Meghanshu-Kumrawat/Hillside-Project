@@ -6,7 +6,6 @@ from accounts.managers import UserManager
 
 
 class User(AbstractUser):
-    username = None
     email = models.EmailField(_('email address'), unique=True)
     phone = models.CharField(max_length=13, unique=True, null=True, blank=True)
     date_of_birth = models.DateField(blank=True, null=True)
@@ -19,11 +18,12 @@ class User(AbstractUser):
     objects = UserManager()
 
     def __str__(self):
-        return self.username
+        return str(self.username)
 
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     zip_code = models.CharField(max_length=10)
     full_address = models.TextField()
 
-    
+    def __str__(self):
+        return str(self.user.username)

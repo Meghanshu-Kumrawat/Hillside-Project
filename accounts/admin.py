@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from accounts.models import User, Address
-
+from rest_framework.authtoken.models import TokenProxy
+from allauth.socialaccount.models import SocialToken, SocialAccount, SocialApp
 
 class AddressInline(admin.TabularInline):
     model = Address
@@ -16,3 +17,8 @@ class UserAdmin(admin.ModelAdmin):
 
 
 admin.site.unregister(Group)
+admin.site.unregister(TokenProxy)
+
+admin.site.unregister(SocialToken)
+admin.site.unregister(SocialAccount)
+admin.site.unregister(SocialApp)
