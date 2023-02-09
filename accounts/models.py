@@ -6,6 +6,8 @@ from accounts.managers import UserManager
 
 
 class User(AbstractUser):
+    first_name = None
+    last_name = None
     email = models.EmailField(_('email address'), unique=True)
     phone = models.CharField(max_length=13, unique=True, null=True, blank=True)
     date_of_birth = models.DateField(blank=True, null=True)
