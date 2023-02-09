@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Product, ProductImage, Review, Brand, Collection
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand, Collection
 from accounts.serializers import UserBaseSerializer
 
 class ProductImageSerializers(serializers.ModelSerializer):
@@ -11,6 +11,16 @@ class ProductImageSerializers(serializers.ModelSerializer):
         product = Product.objects.get(id=self.context['pk'])
         productimage = ProductImage.objects.create(product=product, **validated_data)
         return productimage
+
+class ProductSizeSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductSize
+        fields = ['id', 'name']
+
+class ProductColorSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ProductColor
+        fields = ['id', 'name']
 
 class ReviewSerializers(serializers.ModelSerializer):
     user = UserBaseSerializer(read_only=True)
@@ -42,17 +52,20 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'size', 'color', 'origin', 'brand', 'price', 'quantity']
+        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'origin', 'brand', 'price', 'quantity']
 
 class ProductSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     productimage_set = ProductImageSerializers(many=True, read_only=True)
+    productcolor_set = ProductColorSerializers(many=True, read_only=True)
+    productsize_set = ProductSizeSerializers(many=True, read_only=True)
+
     review_set = ReviewSerializers(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'size', 'color', 'origin', 'price', 'quantity', 'created_at', 'brand', 'productimage_set', 'review_set']
+        fields = ['url', 'id', 'name', 'description', 'category', 'material', 'origin', 'price', 'quantity', 'created_at', 'brand', 'productimage_set', 'productsize_set', 'productcolor_set', 'review_set']
 
 class ProductBannerImageSerializers(serializers.ModelSerializer):
     class Meta:

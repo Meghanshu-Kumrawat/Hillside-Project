@@ -6,8 +6,8 @@ from django.db.models import Q
 from functools import reduce
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from products.models import Product, ProductImage, Review, Brand, Category, Collection
-from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ReviewSerializers, 
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand, Category, Collection
+from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
         ReviewWriteSerializers, 
         ProductBannerImageSerializers, BrandSerializer, CategorySerializer, CollectionSerializer)
 
@@ -141,7 +141,7 @@ class ProductBannerViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
         })
 )
 class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
-    queryset = Product.objects.prefetch_related('productimage_set', 'review_set').all()
+    queryset = Product.objects.prefetch_related('productimage_set', 'productsize_set', 'productcolor_set', 'review_set').all()
     serializer_class = ProductSerializer
     authentication_classes = [TokenAuthentication]
 
@@ -222,6 +222,130 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
                 return Response({'id': 'Not found, Provide valid image id.'})
             image_ins.delete()
             return Response({"message":f"Image object with id = {request.data.get('id')} deleted."}, status=status.HTTP_200_OK)
+
+        return Response(serializer.data)
+
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product sizes for the specific product with the selected id',
+        responses={
+            '200': ProductSizeSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create/upload the product sizes for the specific product with the selected id',
+        # parameters=[OpenApiParameter('product')],
+        request = ProductSizeSerializers,
+        responses={
+            '200': ProductSizeSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product sizes for the specific product with the selected id',
+        request = ProductSizeSerializers,
+        responses={
+            '200': ProductSizeSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product sizes for the specific product with the selected id',
+        request = ProductSizeSerializers,
+        responses={
+            '200': OpenApiResponse(description='Size object with id = {id} deleted.'),
+        })
+    @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'sizes/?$', serializer_class=ProductSizeSerializers)
+    def sizes(self, request, pk, *args):
+        """ to modify sizes of the specific product"""
+        self._object = self.get_object() # force to call check_object_permissions
+        if request.method == 'GET':
+            queryset = ProductSize.objects.filter(product_id=pk).order_by('-id')
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = ProductSizeSerializers(page, many=True,
+                    context={"request": request})
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True,
+                context={"request": request})
+        elif request.method == 'POST':
+            serializer = ProductSizeSerializers(data=request.data, context={"pk":pk})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        elif request.method == 'PATCH':
+            try:
+                size_ins = ProductSize.objects.get(pk=request.data.get('id'))
+            except ProductSize.DoesNotExist:
+                return Response({'id': 'Not found, Provide valid size id.'})
+            
+            serializer = ProductSizeSerializers(size_ins, data=request.data, partial=True, context={"pk":pk})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        elif request.method == 'DELETE':
+            try:
+                image_ins = ProductSize.objects.get(pk=request.data.get('id'))
+            except ProductSize.DoesNotExist:
+                return Response({'id': 'Not found, Provide valid size id.'})
+            image_ins.delete()
+            return Response({"message":f"Size object with id = {request.data.get('id')} deleted."}, status=status.HTTP_200_OK)
+
+        return Response(serializer.data)
+    
+    @extend_schema(methods=['GET'],
+        summary='Method returns information of the product colors for the specific product with the selected id',
+        responses={
+            '200': ProductColorSerializers(many=True),
+        })
+    @extend_schema(methods=['POST'],
+        summary='Method create/upload the product colors for the specific product with the selected id',
+        # parameters=[OpenApiParameter('product')],
+        request = ProductColorSerializers,
+        responses={
+            '200': ProductColorSerializers(),
+        })
+    @extend_schema(methods=['PATCH'],
+        summary='Methods does a partial update of chosen fields in a product colors for the specific product with the selected id',
+        request = ProductColorSerializers,
+        responses={
+            '200': ProductColorSerializers(),
+        })
+    @extend_schema(methods=['DELETE'],
+        summary='Method delete the product colors for the specific product with the selected id',
+        request = ProductColorSerializers,
+        responses={
+            '200': OpenApiResponse(description='Color object with id = {id} deleted.'),
+        })
+    @action(detail=True, methods=['GET', 'POST', 'PATCH', 'DELETE'], url_path=r'colors/?$', serializer_class=ProductColorSerializers)
+    def colors(self, request, pk, *args):
+        """ to modify colors of the specific product"""
+        self._object = self.get_object() # force to call check_object_permissions
+        if request.method == 'GET':
+            queryset = ProductColor.objects.filter(product_id=pk).order_by('-id')
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = ProductColorSerializers(page, many=True,
+                    context={"request": request})
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True,
+                context={"request": request})
+        elif request.method == 'POST':
+            serializer = ProductColorSerializers(data=request.data, context={"pk":pk})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        elif request.method == 'PATCH':
+            try:
+                color_ins = ProductColor.objects.get(pk=request.data.get('id'))
+            except ProductColor.DoesNotExist:
+                return Response({'id': 'Not found, Provide valid size id.'})
+            
+            serializer = ProductColorSerializers(color_ins, data=request.data, partial=True, context={"pk":pk})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        elif request.method == 'DELETE':
+            try:
+                image_ins = ProductColor.objects.get(pk=request.data.get('id'))
+            except ProductColor.DoesNotExist:
+                return Response({'id': 'Not found, Provide valid size id.'})
+            image_ins.delete()
+            return Response({"message":f"Color object with id = {request.data.get('id')} deleted."}, status=status.HTTP_200_OK)
 
         return Response(serializer.data)
 

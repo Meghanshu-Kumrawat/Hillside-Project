@@ -130,11 +130,13 @@ class UserLoginView(APIView):
     def post(self, request, format='json'):
         email = request.data.get('email')
 
-        user = authenticate(email=email, password=request.data.get('password'))
+        user = authenticate(username=email, password=request.data.get('password'))
         if user:
             if user.is_active:
-                token = Token.objects.get(user=user).key
-                return Response({"user":user.email, "token": token}, status=status.HTTP_202_ACCEPTED)
+                serializer = UserBaseSerializer(user)
+                json = serializer.data
+                json['token'] = user.auth_token.key
+                return Response({"data":json, "message":"You are authorised!, use same token to access the site!"}, status=status.HTTP_202_ACCEPTED)
             else:
                 return Response({"message": "Account not active!"}, status=status.HTTP_406_NOT_ACCEPTABLE)
         else:

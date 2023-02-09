@@ -35,8 +35,6 @@ class Product(models.Model):
     description = models.TextField()
     material = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
-    size = models.CharField(max_length=255)
-    color = models.CharField(max_length=255)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     origin = models.CharField(max_length=255)
     quantity = models.IntegerField(validators=[MinValueValidator(0)])
@@ -51,6 +49,20 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to='products/')
     caption = models.CharField(max_length=255, blank=True)
     position = models.CharField(max_length=255, choices=PositionChoice.choices(), default=PositionChoice.CENTER)
+
+class ProductSize(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+class ProductColor(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
 
 class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

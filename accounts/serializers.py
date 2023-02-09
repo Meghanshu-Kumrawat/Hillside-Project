@@ -6,7 +6,7 @@ from accounts.models import User, Address
 class UserBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'phone', 'email', 'date_of_birth']  
+        fields = ['id', 'username', 'phone', 'email']  
 
 class UserEmailSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
@@ -22,8 +22,10 @@ class UserEmailSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'phone', 'password', 'password2')
 
     def create(self, validated_data):
-        user = User.objects.create(email=validated_data['email'], phone=validated_data['phone'])
-        user.set_password(validated_data['password'])
+        password = validated_data.pop('password')
+        password2 = validated_data.pop('password2')
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
         user.save()
         return user
     

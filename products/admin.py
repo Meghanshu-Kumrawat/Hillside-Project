@@ -1,5 +1,5 @@
 from django.contrib import admin
-from products.models import Brand, Category, Product, ProductImage, Review, Collection
+from products.models import Brand, Category, Product, ProductImage, ProductColor, ProductSize, Review, Collection
 
 
 @admin.register(Brand)
@@ -16,12 +16,20 @@ class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 0
 
+class ProductSizeInline(admin.TabularInline):
+    model = ProductSize
+    extra = 0
+
+class ProductColorInline(admin.TabularInline):
+    model = ProductColor
+    extra = 0
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'price', 'quantity', 'created_at']
     list_filter = ['created_at']
     search_fields = ['name']
-    inlines = [ProductImageInline]
+    inlines = [ProductImageInline, ProductSizeInline, ProductColorInline]
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
