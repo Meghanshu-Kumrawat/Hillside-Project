@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand, Collection
+from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand, Collection, CollectionImage
 from accounts.serializers import UserBaseSerializer
 
 class ProductImageSerializers(serializers.ModelSerializer):
@@ -72,8 +72,14 @@ class ProductBannerImageSerializers(serializers.ModelSerializer):
         model = ProductImage
         fields = ['image', 'caption', 'product']
 
+class CollectionImageSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = CollectionImage
+        fields = ['image', 'caption']
+
 class CollectionSerializer(serializers.ModelSerializer):
+    collectionimage_set = CollectionImageSerializers(many=True, read_only=True)
     products = ProductSerializer(many=True, read_only=True)
     class Meta:
         model = Collection
-        fields = ['url', 'id', 'name', 'description', 'products', 'active', 'created_at', 'start_date', 'end_date']
+        fields = ['url', 'id', 'name', 'description', 'collectionimage_set', 'products', 'active', 'created_at', 'start_date', 'end_date']

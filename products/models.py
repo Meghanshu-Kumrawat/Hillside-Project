@@ -72,10 +72,10 @@ class Review(models.Model):
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     created_at = models.DateTimeField(auto_now_add=True)
 
+
 class Collection(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    image = models.ImageField(upload_to='collection_banner/')
     products = models.ManyToManyField(Product)
     active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,3 +84,8 @@ class Collection(models.Model):
 
     def __str__(self):
         return self.name
+
+class CollectionImage(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='collection_banner/')
+    caption = models.CharField(max_length=255, blank=True)

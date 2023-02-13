@@ -140,7 +140,9 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     def get_queryset(self):
         queryset = Product.objects.all()
+        category = self.request.query_params.get('category')
         brand = self.request.query_params.get('brand')
+        filters = [Q(category__name__contains=category) if category else Q(), Q(brand__name__contains=brand) if brand else Q()]
         queryset = queryset.filter(reduce(lambda x, y: x & y, filters))
         return queryset
         # return queryset
@@ -419,7 +421,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         }),
 )
 class CollectionViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
-    queryset = Collection.objects.all()
+    queryset = Collection.objects.prefetch_related('collectionimage_set').all()
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
