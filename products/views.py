@@ -55,7 +55,6 @@ class BrandViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser, IsAuthenticated]
 
 
-@extend_schema(tags=['category'])
 @extend_schema_view(
     list=extend_schema(
         summary='Returns a paginated list of categories according to query parameters (10 projects per page)',
@@ -63,27 +62,21 @@ class BrandViewSet(viewsets.ModelViewSet):
             '200': CategorySerializer,
         }),
     create=extend_schema(
-        summary='Method creates a new category',
         responses={
             '201': CategorySerializer,
         }),
     retrieve=extend_schema(
-        summary='Method returns details of a specific category',
         responses={
             '200': CategorySerializer,
         }),
     destroy=extend_schema(
-        summary='Method deletes a specific category',
         responses={
-            '204': OpenApiResponse(description='The category has been deleted'),
         }),
     partial_update=extend_schema(
-        summary='Methods does a partial update of chosen fields in a category',
         responses={
             '200': CategorySerializer,
         }),
     update=extend_schema(
-        summary='Methods does a update of chosen fields in a category',
         responses={
             '200': CategorySerializer,
         })
@@ -147,13 +140,9 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 
     def get_queryset(self):
         queryset = Product.objects.all()
-        category = self.request.query_params.get('category')
         brand = self.request.query_params.get('brand')
-        filters = [Q(category__name__contains=category) if category else Q(), Q(brand__name__contains=brand) if brand else Q()]
         queryset = queryset.filter(reduce(lambda x, y: x & y, filters))
         return queryset
-        # if category or brand:
-        #     queryset = queryset.filter(Q(category=category) and Q(brand=brand))
         # return queryset
 
     def get_serializer_class(self):
@@ -432,3 +421,10 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
 class CollectionViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Collection.objects.all()
     serializer_class = CollectionSerializer
+
+    def get_queryset(self):
+        queryset = Collection.objects.all()
+        collection = self.request.query_params.get('collection')
+        if collection:
+            queryset = queryset.filter(name__contains=collection)
+        return queryset
