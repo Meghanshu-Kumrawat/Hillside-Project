@@ -75,6 +75,7 @@ class Review(models.Model):
 class Collection(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    image = models.ImageField(upload_to='collection_banner/')
     products = models.ManyToManyField(Product)
     active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,0 +1,20 @@
+version: '1'
+
+services:
+  web:
+    entrypoint: /code/entrypoint.sh
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - db
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: Hillside
+      POSTGRES_PASSWORD: Admin@123

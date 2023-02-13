@@ -29,9 +29,9 @@ from drf_spectacular.utils import (
 
 
 class HelloView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
-        content = {'message': 'Hello, ' + request.user.username}
+        content = {'message': 'Hello, World!', 'user': len(User.objects.all())}
         return Response(content)
 
 class UserRegisterView(APIView):

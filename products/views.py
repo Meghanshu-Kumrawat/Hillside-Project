@@ -149,7 +149,7 @@ class ProductViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         queryset = Product.objects.all()
         category = self.request.query_params.get('category')
         brand = self.request.query_params.get('brand')
-        filters = [Q(category=category) if category else Q(), Q(brand=brand) if brand else Q()]
+        filters = [Q(category__name__contains=category) if category else Q(), Q(brand__name__contains=brand) if brand else Q()]
         queryset = queryset.filter(reduce(lambda x, y: x & y, filters))
         return queryset
         # if category or brand:
