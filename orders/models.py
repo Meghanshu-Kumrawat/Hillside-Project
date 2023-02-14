@@ -7,7 +7,7 @@ class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
-    ordered = models.BooleanField(default=False)                                                                                                                                                                                                                                                                                                                                                                              
+    ordered = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_total(self):
@@ -38,7 +38,7 @@ class Order(models.Model):
     total = models.IntegerField(default=0)
     payment = models.OneToOneField('Payment', on_delete=models.SET_NULL, blank=True, null=True)
     address = models.OneToOneField(Address, on_delete=models.SET_NULL, blank=True, null=True)
-    ordered = models.BooleanField(default=False)                                                                                                                                                                                                                                                                                                                                                                              
+    ordered = models.BooleanField(default=False)
     received = models.BooleanField(default=False)
 
 class Payment(models.Model):
