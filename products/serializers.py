@@ -83,3 +83,15 @@ class CollectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Collection
         fields = ['url', 'id', 'name', 'description', 'collectionimage_set', 'products', 'active', 'created_at', 'start_date', 'end_date']
+
+class ProductHomeEditSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'description', 'category', 'material', 'origin', 'brand', 'price', 'quantity']
+
+class CollectionHomeEditSerializer(serializers.ModelSerializer):
+    collectionimage_set = CollectionImageSerializers(many=True, read_only=True)
+    products = ProductBaseSerializer(many=True, read_only=True)
+    class Meta:
+        model = Collection
+        fields = ['id', 'name', 'description', 'collectionimage_set', 'active', 'created_at', 'start_date', 'end_date', 'products']

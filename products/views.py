@@ -5,11 +5,13 @@ from rest_framework.authentication import TokenAuthentication
 from django.db.models import Q
 from functools import reduce
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+import operator
 
 from products.models import Product, ProductImage, ProductSize, ProductColor, Review, Brand, Category, Collection
 from products.serializers import (ProductSerializer, ProductBaseSerializer, ProductImageSerializers, ProductSizeSerializers, ProductColorSerializers, ReviewSerializers, 
         ReviewWriteSerializers, 
-        ProductBannerImageSerializers, BrandSerializer, CategorySerializer, CollectionSerializer)
+        ProductBannerImageSerializers, BrandSerializer, CategorySerializer, CollectionSerializer,
+        ProductHomeEditSerializer, CollectionHomeEditSerializer)
 
 from drf_spectacular.utils import (
     OpenApiParameter, OpenApiResponse, PolymorphicProxySerializer,
@@ -430,3 +432,22 @@ class CollectionViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.R
         if collection:
             queryset = queryset.filter(name__contains=collection)
         return queryset
+
+
+class HomeEditView(views.APIView):
+    def get(self, request, *args, **kwargs):
+        categories = Category.objects.exclude(tag__isnull=True)
+        collection = Collection.objects.exclude(tag__isnull=True)
+        json_data = []
+        data = list(categories) + list(collection)
+        ordered = sorted(data, key=operator.attrgetter('tag'))
+        for item in ordered:
+            if hasattr(item, 'products'):
+                collection = CollectionHomeEditSerializer(item, context={'request': request})
+                json_data.append(collection.data)
+            else:
+                categories = Product.objects.filter(category=item)
+                products = ProductHomeEditSerializer(categories, many=True, context={'request': request})
+                json_data.append({'products': products.data})
+
+        return Response(json_data)
